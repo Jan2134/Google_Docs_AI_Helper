@@ -1,32 +1,29 @@
 """
 ai_utils.py
-Handles all AI prediction logic using the Groq API (free tier, no credit card required).
-Sign up and get a free key at: https://console.groq.com
+Handles all AI prediction logic using the Groq API.
 """
 
 from groq import Groq
 import re
 
-# Module-level client — kept as None until configure_groq() is called.
-# This avoids creating a client before we actually have the API key.
+# Module-level client kept as None until configure_groq() is called
 _client: Groq | None = None
 
 
 def configure_groq(api_key: str):
     """
-    Creates the Groq client with the given API key.
+    Creates the Groq client with the given API key
     Call this once at startup before calling analyze_document().
     """
     global _client
-    _client = Groq(api_key=api_key)   # instantiate the SDK client; no network call yet
+    _client = Groq(api_key=api_key)   # instantiate the SDK client
 
 
 def analyze_document(text: str, style: str = "General", target_score: int = 7) -> dict:
     """
-    Sends the document to Groq (llama-3.3-70b-versatile) and returns a structured analysis.
-
+    Sends the document to Groq (llama-3.3-70b-versatile) and returns a structured analysis
     The prompt forces the model to respond in a fixed key:value format so we can
-    parse it reliably without needing JSON mode.
+    parse it reliably without needing JSON mode
 
     Args:
         text:         The document text to analyze
@@ -47,9 +44,9 @@ def analyze_document(text: str, style: str = "General", target_score: int = 7) -
     # The system prompt does two things: sets the model's role as a style-specific coach
     # and locks the response into a rigid format so _parse_analysis_response can read it
     system_prompt = (
-        f"You are an expert writing coach specialising in {style} writing. "
-        f"The author's target clarity score is {target_score}/10. "
-        "Analyze the user's document and return your analysis in EXACTLY this format "
+        f"You are an expert writing coach specialising in {style} writing. " # sets the model's role as style-specific coach
+        f"The author's target clarity score is {target_score}/10. " # sets the target clarity score
+        "Analyze the user's document and return your analysis in EXACTLY this format " # sets the output format
         "— no extra commentary, no markdown:\n\n"
         "CLARITY_SCORE: <integer 1-10>\n"
         "TONE: <one or two sentence description of the writing tone>\n"
@@ -77,8 +74,8 @@ def analyze_document(text: str, style: str = "General", target_score: int = 7) -
 
 def _parse_analysis_response(raw_text: str) -> dict:
     """
-    Parses the model's fixed-format response into a plain Python dict.
-    If anything is missing the defaults below act as a safe fallback.
+    Parses the model's response into a plain Python dict
+    If anything is missing the defaults below act as a safe fallback
     """
     # start with safe defaults in case the model skips a field
     result: dict = {
@@ -111,7 +108,7 @@ def _parse_analysis_response(raw_text: str) -> dict:
         elif upper.startswith("SUGGESTION_3:"):
             result["suggestions"].append(line.split(":", 1)[-1].strip())
 
-    # if the model didn't return a score for some reason, default to the middle of the scale
+    # if the model didn't return a score for some reason default to the middle of the scale
     if result["clarity_score"] is None:
         result["clarity_score"] = 5
 

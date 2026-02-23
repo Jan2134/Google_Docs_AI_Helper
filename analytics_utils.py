@@ -1,23 +1,21 @@
 """
 analytics_utils.py
-Local analytics using textstat, NLTK, wordcloud, and matplotlib.
-No API calls needed here — everything runs on the user's machine.
+Local analytics using textstat, NLTK, wordcloud, and matplotlib
+No API calls needed here
 """
 
 import io
 import re
 import string
 from collections import Counter
-
 import matplotlib
-matplotlib.use("Agg")  # Streamlit runs in a server process, so we need a non-interactive backend
+matplotlib.use("Agg")  # Streamlit runs in a server process: we need a non-interactive backend
 import matplotlib.pyplot as plt
 import nltk
 import textstat
 from wordcloud import WordCloud, STOPWORDS
 
 
-# Make sure the NLTK data we need is actually downloaded before we try to use it
 # This runs quietly so it doesn't clutter the app output on startup
 def _ensure_nltk():
     for resource, path in [
@@ -32,8 +30,8 @@ def _ensure_nltk():
 
 def get_readability_stats(text: str) -> dict:
     """
-    Runs a handful of readability formulas on the given text via textstat.
-    Returns a dict so the caller can pick whatever metrics it wants to display.
+    Runs a handful of readability formulas on the given text via textstat
+    Returns a dict so the caller can pick whatever metrics it wants to display
 
     Keys:
         fk_grade        (float): Flesch-Kincaid Grade Level

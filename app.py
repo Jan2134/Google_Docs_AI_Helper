@@ -41,9 +41,8 @@ def get_groq_api_key() -> str:
         key = os.environ.get("GROQ_API_KEY", "")
         if not key:
             st.error(
-                "🔑 **Groq API Key not found.** "
+                "Groq API Key not found."
                 "Add `GROQ_API_KEY` to `.streamlit/secrets.toml` or set it as an environment variable. "
-                "Get a free key (no credit card) at https://console.groq.com"
             )
             st.stop()   # halt the script so nothing else renders without a valid key
         return key
@@ -138,7 +137,7 @@ with st.sidebar:
         # the ID is the long alphanumeric string between /d/ and /edit in the URL
         help="Found in the Google Docs URL: `docs.google.com/document/d/<ID>/edit`",
     )
-    fetch_btn = st.button("📥 Fetch Document", use_container_width=True)
+    fetch_btn = st.button("Fetch Document", use_container_width=True)
 
     st.markdown("---")
 
