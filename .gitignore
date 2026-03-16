@@ -4,6 +4,9 @@ token.json
 # Google API credentials
 credentials.json
 
+# Google service account key
+docs-optimizer-2ee59fbaa2a8.json
+
 # Streamlit secrets
 .streamlit/secrets.toml
 

@@ -148,6 +148,10 @@ with st.sidebar:
     st.markdown("---")
 
     st.markdown("### 📄 Google Doc")
+    st.caption(
+        "Before fetching, share your doc with **Editor** access:\n\n"
+        "`agent-249@docs-optimizer.iam.gserviceaccount.com`"
+    )
     doc_id = st.text_input(
         "Document ID",
         placeholder="Paste your Doc ID here…",

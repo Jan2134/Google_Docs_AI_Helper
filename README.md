@@ -102,14 +102,32 @@ export GROQ_API_KEY="gsk_..."
 
 ### 5. Set up Google Docs access
 
-1. Go to the [Google Cloud Console](https://console.cloud.google.com)
-2. Create a new project and enable the **Google Docs API**
-3. Create an **OAuth 2.0 Client ID** (Desktop application)
-4. Download the credentials file and save it as `credentials.json` in the project root
+Authentication uses a **Google Service Account** — no browser login required, works on both local and cloud deployments.
 
-On the first run a browser window will open for Google sign-in. After you approve, a `token.json` file is created and subsequent runs are silent.
+1. Go to the [Google Cloud Console](https://console.cloud.google.com) and enable the **Google Docs API**
+2. Create a Service Account under **IAM & Admin → Service Accounts**
+3. On the service account's **Keys** tab → **Add Key → Create new key → JSON** — save the downloaded file in the project root
+4. **Share each Google Doc** you want to access with the service account email as **Editor**:
+   ```
+   agent-249@docs-optimizer.iam.gserviceaccount.com
+   ```
 
-> **Note:** `credentials.json` and `token.json` are listed in `.gitignore` and should never be committed.
+**Local development:** the JSON key file is loaded automatically from the project root (gitignored).
+
+**Streamlit Cloud:** paste the key file contents into your app's secrets as a TOML table:
+
+```toml
+[gcp_service_account]
+type = "service_account"
+project_id = "..."
+private_key_id = "..."
+private_key = "..."
+client_email = "agent-249@docs-optimizer.iam.gserviceaccount.com"
+token_uri = "https://oauth2.googleapis.com/token"
+# ... (copy all remaining fields from the downloaded JSON)
+```
+
+> **Note:** The service account JSON key file is listed in `.gitignore` and should never be committed.
 
 ---
 
@@ -157,9 +175,8 @@ The app opens at `http://localhost:8501` by default.
 
 The following files are excluded from version control via `.gitignore`:
 
-- `credentials.json` — OAuth client secret
-- `token.json` — cached user access token
-- `.streamlit/secrets.toml` — Groq API key
+- `docs-optimizer-*.json` — service account JSON key
+- `.streamlit/secrets.toml` — Groq API key and service account credentials
 - `.claude/` — local editor settings
 
 Never commit any of these files to a public repository.
