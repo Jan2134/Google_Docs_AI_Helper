@@ -72,6 +72,64 @@ def analyze_document(text: str, style: str = "General", target_score: int = 7) -
     return result
 
 
+def get_groq_client() -> Groq:
+    """
+    Returns the initialised Groq client.
+    Used by other modules (e.g. rewrite_utils) that need the shared client
+    without re-initialising it.
+
+    Raises:
+        RuntimeError: If configure_groq() hasn't been called yet.
+    """
+    if _client is None:
+        raise RuntimeError(
+            "Groq client is not initialised. Call configure_groq(api_key) first."
+        )
+    return _client
+
+
+def chat_with_document(
+    messages: list,
+    document_context: str,
+    style: str = "General",
+) -> str:
+    """
+    Multi-turn chat with the document injected as system context.
+
+    Args:
+        messages:         Full conversation history in OpenAI format
+                          [{"role": "user"|"assistant", "content": "..."}].
+                          The latest user message must already be appended.
+        document_context: The current document text (truncated to 3 000 chars
+                          to stay within the context budget).
+        style:            The writing style target, forwarded from the sidebar.
+
+    Returns:
+        The assistant's reply as a plain string.
+    """
+    if _client is None:
+        raise RuntimeError(
+            "Groq client is not initialised. Call configure_groq(api_key) first."
+        )
+
+    system = (
+        f"You are a helpful writing assistant. The user is working on a {style} document. "
+        "Help them understand, improve, and refine their writing. "
+        "You can answer questions about their document, suggest rewrites of specific "
+        "passages, explain stylistic choices, or discuss readability improvements. "
+        "Be concise but thorough.\n\n"
+        f"Document context:\n---\n{document_context[:3000]}\n---"
+    )
+
+    response = _client.chat.completions.create(
+        model="llama-3.1-8b-instant",   # fast model — latency matters in chat
+        messages=[{"role": "system", "content": system}] + messages,
+        temperature=0.6,
+        max_tokens=512,
+    )
+    return response.choices[0].message.content.strip()
+
+
 def _parse_analysis_response(raw_text: str) -> dict:
     """
     Parses the model's response into a plain Python dict
