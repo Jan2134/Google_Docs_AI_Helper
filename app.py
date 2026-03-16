@@ -182,9 +182,7 @@ with st.sidebar:
     st.markdown(
         """
         <small style='color:#64748b;'>
-        Auth uses <code>credentials.json</code> OAuth.<br><br>
-        <b>First run?</b> A browser window opens for Google sign-in.
-        Token cached in <code>token.json</code>.
+        Auth uses a Google Service Account — no browser login required.
         </small>
         """,
         unsafe_allow_html=True,
@@ -202,6 +200,7 @@ if fetch_btn:
                     st.sidebar.warning("The document appears to be empty.")
                 else:
                     st.session_state.doc_text = text
+                    st.session_state.doc_text_area = text
                     st.session_state.analysis = None
                     st.toast("Document fetched successfully!", icon="📄")
             except FileNotFoundError as e:
