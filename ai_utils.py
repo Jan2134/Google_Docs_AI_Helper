@@ -44,9 +44,9 @@ def analyze_document(text: str, style: str = "General", target_score: int = 7) -
     # The system prompt does two things: sets the model's role as a style-specific coach
     # and locks the response into a rigid format so _parse_analysis_response can read it
     system_prompt = (
-        f"You are an expert writing coach specialising in {style} writing. " # sets the model's role as style-specific coach
-        f"The author's target clarity score is {target_score}/10. " # sets the target clarity score
-        "Analyze the user's document and return your analysis in EXACTLY this format " # sets the output format
+        f"You are an expert writing coach specialising in {style} writing. "
+        f"The author's target clarity score is {target_score}/10. "
+        "Analyze the user's document and return your analysis in EXACTLY this format "
         "— no extra commentary, no markdown:\n\n"
         "CLARITY_SCORE: <integer 1-10>\n"
         "TONE: <one or two sentence description of the writing tone>\n"
@@ -56,10 +56,9 @@ def analyze_document(text: str, style: str = "General", target_score: int = 7) -
     )
 
     response = _client.chat.completions.create(
-        model="llama-3.3-70b-versatile",   # Groq's fastest large model at time of writing
+        model="llama-3.3-70b-versatile",
         messages=[
             {"role": "system", "content": system_prompt},
-            # wrap the document in --- delimiters so the model knows where it starts and ends
             {"role": "user", "content": f"Document:\n---\n{text}\n---"},
         ],
         temperature=0.4,    # low temperature keeps the output deterministic and structured
@@ -68,7 +67,7 @@ def analyze_document(text: str, style: str = "General", target_score: int = 7) -
 
     raw_text = response.choices[0].message.content.strip()
     result = _parse_analysis_response(raw_text)
-    result["raw"] = raw_text   # keep the raw string so the debug expander can show it
+    result["raw"] = raw_text
     return result
 
 
@@ -122,7 +121,7 @@ def chat_with_document(
     )
 
     response = _client.chat.completions.create(
-        model="llama-3.1-8b-instant",   # fast model — latency matters in chat
+        model="llama-3.1-8b-instant",   # fast model, latency matters in chat
         messages=[{"role": "system", "content": system}] + messages,
         temperature=0.6,
         max_tokens=512,
@@ -145,7 +144,7 @@ def _parse_analysis_response(raw_text: str) -> dict:
 
     for line in raw_text.splitlines():
         line = line.strip()
-        upper = line.upper()   # normalise to uppercase so matching is case-insensitive
+        upper = line.upper()   # normalise to uppercase for case-insensitive matching
 
         if upper.startswith("CLARITY_SCORE:"):
             # extract the first integer on the line and clamp it to the 1-10 range

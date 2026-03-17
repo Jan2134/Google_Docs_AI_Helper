@@ -1,9 +1,9 @@
 """
 app.py
-AI Writing Optimizer for Google Docs — Main Streamlit Application.
+AI Writing Optimizer for Google Docs. Main Streamlit application.
 Assignment 2 additions:
-  - Rewrite tab: 3-call agentic pipeline (Drafter → Critic → Refiner)
-  - Chat tab:    multi-turn document Q&A assistant
+  - Rewrite tab: 3-call agentic pipeline (Drafter, Critic, Refiner)
+  - Chat tab: multi-turn document Q&A assistant
 """
 
 import streamlit as st
@@ -50,7 +50,7 @@ def get_groq_api_key() -> str:
         return key
 
 
-# ── Global CSS ─────────────────────────────────────────────────────────────────
+# Global CSS
 st.markdown(
     """
     <style>
@@ -126,7 +126,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ── Session state ──────────────────────────────────────────────────────────────
+# Session state
 if "doc_text" not in st.session_state:
     st.session_state.doc_text = ""
 if "analysis" not in st.session_state:
@@ -142,7 +142,7 @@ if "rewrite_input_text" not in st.session_state:
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
-# ── Sidebar ────────────────────────────────────────────────────────────────────
+# Sidebar
 with st.sidebar:
     st.markdown("## ✍️ AI Writing Optimizer")
     st.markdown("---")
@@ -188,7 +188,7 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
 
-# ── Fetch document handler ─────────────────────────────────────────────────────
+# Fetch document handler
 if fetch_btn:
     if not doc_id.strip():
         st.sidebar.warning("Please enter a Google Document ID first.")
@@ -208,7 +208,7 @@ if fetch_btn:
             except Exception as e:
                 st.sidebar.error(f"Error fetching document: {e}")
 
-# ── Header + Save button (above tabs, always visible) ─────────────────────────
+# Header and save button, always visible above the tabs
 hdr_title, hdr_btn = st.columns([4, 1])
 
 with hdr_title:
@@ -248,7 +248,7 @@ if save_btn and can_save:
 
 st.markdown("---")
 
-# ── Word-level diff renderer ───────────────────────────────────────────────────
+# Word-level diff renderer
 
 def render_word_diff(original: str, revised: str) -> str:
     """
@@ -294,7 +294,7 @@ def render_word_diff(original: str, revised: str) -> str:
     return " ".join(parts)
 
 
-# ── Main tabs ──────────────────────────────────────────────────────────────────
+# Main tabs
 tab_analyze, tab_rewrite, tab_chat = st.tabs([
     "📊 Analyze",
     "✏️ Rewrite",
@@ -302,9 +302,7 @@ tab_analyze, tab_rewrite, tab_chat = st.tabs([
 ])
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB 1 — ANALYZE (original Assignment 1 content, unchanged)
-# ══════════════════════════════════════════════════════════════════════════════
+# Tab 1: Analyze (original Assignment 1 content)
 with tab_analyze:
     left_col, right_col = st.columns([2, 1])
 
@@ -568,11 +566,9 @@ with tab_analyze:
             st.rerun()
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB 2 — REWRITE (3-call agentic pipeline)
+# Tab 2: Rewrite (3-call agentic pipeline)
 # Wrapped in @st.fragment so the button triggers a fragment-only rerun,
 # keeping the active tab in place instead of resetting to the first tab.
-# ══════════════════════════════════════════════════════════════════════════════
 
 @st.fragment
 def render_rewrite_tab(writing_style: str, target_clarity: int) -> None:
@@ -637,7 +633,7 @@ def render_rewrite_tab(writing_style: str, target_clarity: int) -> None:
                 pipe_status.update(label="Pipeline failed", state="error", expanded=True)
                 st.error(f"Pipeline error: {e}")
 
-    # ── Pipeline results ──────────────────────────────────────────────────────
+    # Pipeline results
     if st.session_state.rewrite_result:
         r        = st.session_state.rewrite_result
         original = st.session_state.rewrite_input_text
@@ -655,7 +651,7 @@ def render_rewrite_tab(writing_style: str, target_clarity: int) -> None:
         m4.metric("LLM Calls", 4 + (1 if r["iterations"] == 2 else 0),
                   help="Drafter + Critic (+ optional 2nd Drafter + Critic) + Refiner + Lessons.")
 
-        # ── Section 1: Tracked-changes diff ───────────────────────────────────
+        # Section 1: tracked changes diff
         st.markdown("---")
         st.markdown(
             "#### What changed — and why "
@@ -675,7 +671,7 @@ def render_rewrite_tab(writing_style: str, target_clarity: int) -> None:
             unsafe_allow_html=True,
         )
 
-        # ── Section 2: Critic's notes ──────────────────────────────────────────
+        # Section 2: critic notes
         st.markdown("---")
         st.markdown("#### Critic's Notes")
         crit_a, crit_b, crit_c = st.columns(3)
@@ -686,7 +682,7 @@ def render_rewrite_tab(writing_style: str, target_clarity: int) -> None:
         with crit_c:
             st.info(f"**Micro-fix applied:** {r['micro_fix'] or '—'}")
 
-        # ── Section 3: Lessons learned ────────────────────────────────────────
+        # Section 3: lessons learned
         st.markdown("---")
         st.markdown("#### Lessons for your next draft")
         st.caption(
@@ -701,7 +697,7 @@ def render_rewrite_tab(writing_style: str, target_clarity: int) -> None:
                 unsafe_allow_html=True,
             )
 
-        # ── Section 4: Full rewritten version (tucked away) ───────────────────
+        # Section 4: full rewritten version, tucked in an expander
         st.markdown("---")
         with st.expander(
             f"Full rewritten version (reference only — confidence: {r['confidence']}/10)"
@@ -757,9 +753,7 @@ with tab_rewrite:
     render_rewrite_tab(writing_style, target_clarity)
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB 3 — CHAT (multi-turn document Q&A)
-# ══════════════════════════════════════════════════════════════════════════════
+# Tab 3: Chat (multi-turn document Q&A)
 with tab_chat:
     st.markdown("### 💬 Writing Assistant Chat")
     st.caption(
@@ -829,7 +823,7 @@ with tab_chat:
                 st.markdown(f"- *{s}*")
 
 
-# ── Footer ─────────────────────────────────────────────────────────────────────
+# Footer
 st.markdown("---")
 st.markdown(
     "<p style='text-align:center; color:#475569; font-size:0.8rem;'>"

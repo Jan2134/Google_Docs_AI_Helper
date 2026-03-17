@@ -3,12 +3,12 @@ rewrite_utils.py
 Three-call agentic rewrite pipeline.
 
 Flow:
-  1. Drafter  – rewrites the text targeting the chosen style / clarity goal.
-  2. Critic   – evaluates the draft and scores it; suggests a micro-fix.
-  3. (loop)   – if critic score < CRITIC_THRESHOLD, Drafter tries again
-                with the feedback attached (max MAX_DRAFT_LOOPS total drafts).
-  4. Refiner  – synthesises the original + best draft + critique into the
-                final polished version.
+  1. Drafter rewrites the text targeting the chosen style and clarity goal.
+  2. Critic evaluates the draft and scores it, then suggests a micro-fix.
+  3. If the critic score is below the threshold, the Drafter tries again
+     with the feedback attached (max MAX_DRAFT_LOOPS total drafts).
+  4. Refiner synthesises the original, best draft, and critique into the
+     final polished version.
 
 Public API:
   run_rewrite_pipeline(client, text, style, target_score) -> dict
@@ -17,9 +17,9 @@ Public API:
 import re
 from groq import Groq
 
-# ── Model assignments ──────────────────────────────────────────────────────────
+# Model assignments
 # The Drafter and Refiner use the large model for quality output.
-# The Critic uses the fast 8B model — catching obvious issues doesn't need 70B.
+# The Critic uses the fast 8B model since catching obvious issues does not require 70B.
 _DRAFTER_MODEL = "llama-3.3-70b-versatile"
 _CRITIC_MODEL  = "llama-3.1-8b-instant"
 _REFINER_MODEL = "llama-3.3-70b-versatile"
@@ -28,7 +28,7 @@ _CRITIC_THRESHOLD = 7   # scores below this trigger a second drafter pass
 _MAX_DRAFT_LOOPS  = 2   # hard cap on drafter iterations
 
 
-# ── Internal: Call 1 — Drafter ─────────────────────────────────────────────────
+# Call 1: Drafter
 
 def _call_drafter(
     client: Groq,
@@ -38,8 +38,8 @@ def _call_drafter(
     critic_feedback: str = "",
 ) -> dict:
     """
-    Ask the Drafter to rewrite `text`.
-    If `critic_feedback` is provided (second pass), the prompt includes the
+    Ask the Drafter to rewrite the given text.
+    If critic_feedback is provided (second pass), the prompt includes the
     critic's notes so the model can address them directly.
     """
     system = (
@@ -86,7 +86,7 @@ def _parse_drafter(raw: str) -> dict:
     return result
 
 
-# ── Internal: Call 2 — Critic ──────────────────────────────────────────────────
+# Call 2: Critic
 
 def _call_critic(
     client: Groq,
@@ -121,7 +121,7 @@ def _call_critic(
                 ),
             },
         ],
-        temperature=0.1,   # low temperature → consistent, deterministic critique
+        temperature=0.1,   # low temperature keeps the critique consistent and deterministic
         max_tokens=256,
     )
     return _parse_critic(response.choices[0].message.content.strip())
@@ -150,7 +150,7 @@ def _parse_critic(raw: str) -> dict:
     return result
 
 
-# ── Internal: Call 3 — Refiner ─────────────────────────────────────────────────
+# Call 3: Refiner
 
 def _call_refiner(
     client: Groq,
@@ -161,7 +161,7 @@ def _call_refiner(
     target_score: int,
 ) -> dict:
     """
-    Ask the Refiner to synthesise the original, the best draft, and the
+    Ask the Refiner to combine the original, the best draft, and the
     editorial critique into a single final polished version.
     """
     system = (
@@ -206,7 +206,7 @@ def _parse_refiner(raw: str) -> dict:
     return result
 
 
-# ── Internal: Call 4 — Lessons ─────────────────────────────────────────────────
+# Call 4: Lessons
 
 def _call_lessons(
     client: Groq,
@@ -215,11 +215,11 @@ def _call_lessons(
     style: str,
 ) -> list[str]:
     """
-    Call 4 (lightweight): compare the original and final texts and extract
+    Lightweight fourth call: compare the original and final texts and extract
     3 transferable writing rules the author can apply in future work.
 
-    Uses the small model — this is a pattern-extraction task, not creative work.
-    The goal is to make the pipeline a *teacher*, not just a ghostwriter.
+    Uses the small model since this is a pattern-extraction task, not creative work.
+    The goal is to make the pipeline a teaching tool, not just a ghostwriter.
     """
     system = (
         f"You are a writing teacher. A student wrote the original text and an expert "
@@ -234,7 +234,7 @@ def _call_lessons(
     )
 
     response = client.chat.completions.create(
-        model=_CRITIC_MODEL,   # small model is sufficient for extraction
+        model=_CRITIC_MODEL,   # small model is enough for pattern extraction
         messages=[
             {"role": "system", "content": system},
             {
@@ -260,7 +260,7 @@ def _call_lessons(
     ]
 
 
-# ── Public API ─────────────────────────────────────────────────────────────────
+# Public API
 
 def run_rewrite_pipeline(
     client: Groq,
@@ -292,18 +292,18 @@ def run_rewrite_pipeline(
     """
     steps: list[str] = []
 
-    # ── Step 1: first draft ───────────────────────────────────────────────────
+    # Step 1: first draft
     steps.append("Drafter (pass 1): generating initial rewrite…")
     drafter = _call_drafter(client, text, style, target_score)
     best_draft   = drafter["rewrite"]
     changes_made = drafter["changes_made"]
     iterations   = 1
 
-    # ── Step 2: critic evaluates ──────────────────────────────────────────────
+    # Step 2: critic evaluates the draft
     steps.append("Critic: evaluating draft quality…")
     critic = _call_critic(client, text, best_draft, style, target_score)
 
-    # ── Step 3 (conditional): loop if the critic isn't satisfied ─────────────
+    # Step 3 (conditional): run a second drafter pass if the score is below the threshold
     if critic["critic_score"] < _CRITIC_THRESHOLD and iterations < _MAX_DRAFT_LOOPS:
         feedback = (
             f"Still weak: {critic['still_weak']} "
@@ -327,7 +327,7 @@ def run_rewrite_pipeline(
             f"(≥ {_CRITIC_THRESHOLD}) — no additional pass needed."
         )
 
-    # ── Step 4: refiner produces the final version ────────────────────────────
+    # Step 4: refiner produces the final version
     critique_summary = (
         f"Improved: {critic['improved']} "
         f"Still weak: {critic['still_weak']} "
@@ -337,7 +337,7 @@ def run_rewrite_pipeline(
     refiner = _call_refiner(client, text, best_draft, critique_summary,
                             style, target_score)
 
-    # ── Step 5: lessons — what the author can learn from the diff ─────────────
+    # Step 5: extract lessons from the diff so the author can apply them next time
     steps.append("Lessons: extracting transferable writing rules…")
     lessons = _call_lessons(client, text, refiner["final_text"], style)
 
